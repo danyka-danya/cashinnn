@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Финансы">
+<meta name="theme-color" content="#0B0B11">
+<title>Финансы</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0B0B11;--card:#151520;--card2:#1C1C2A;--border:#252535;
+  --text:#F0F0FF;--muted:#606075;--muted2:#3A3A50;
+  --accent:#7B6EE8;--accent2:#9D93EE;
+  --green:#2ECC9A;--red:#FF6060;--yellow:#F9C84A;--orange:#FF8C42;
+  --r:16px;--rs:10px;--rss:8px;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column;padding-top:var(--safe-t)}
+.screen{display:none;flex:1;overflow-y:auto;padding:16px 16px 0;-webkit-overflow-scrolling:touch}
+.screen.active{display:block}
+/* Header */
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 0;margin-bottom:4px}
+.top-bar h1{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.btn-icon{width:40px;height:40px;border-radius:50%;background:var(--card);border:none;color:var(--text);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+.btn-icon:active{transform:scale(.92)}
+.month-nav{display:flex;align-items:center;gap:8px;padding:6px 16px}
+.month-nav button{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px}
+.month-nav span{font-size:15px;font-weight:600;color:var(--text);min-width:130px;text-align:center}
+/* Cards */
+.card{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card2{background:var(--card2);border-radius:var(--r);padding:14px;margin-bottom:10px}
+/* Total card */
+.total-card{background:linear-gradient(135deg,#1A1535 0%,#0F1A2E 100%);border-radius:20px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden}
+.total-card::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:var(--accent);opacity:.08;border-radius:50%}
+.total-card .label{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.total-card .amount{font-size:38px;font-weight:800;letter-spacing:-1.5px;color:var(--text)}
+.total-card .amount span{font-size:22px;color:var(--muted)}
+.total-card .compare{font-size:13px;margin-top:6px}
+.compare.up{color:var(--red)}
+.compare.down{color:var(--green)}
+.compare.same{color:var(--muted)}
+/* Category grid */
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.cat-card{background:var(--card);border-radius:var(--r);padding:14px;cursor:pointer;transition:.15s}
+.cat-card:active{transform:scale(.97)}
+.cat-card .cc-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cc-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.cc-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-amount{font-size:18px;font-weight:700}
+.cc-bar{height:3px;border-radius:2px;background:var(--border);margin-top:8px;overflow:hidden}
+.cc-bar-fill{height:100%;border-radius:2px;transition:.4s}
+/* Transactions */
+.tx-group{margin-bottom:16px}
+.tx-date{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.tx-item{background:var(--card);border-radius:var(--r);padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:.15s}
+.tx-item:active{transform:scale(.98)}
+.tx-logo{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;overflow:hidden;background:var(--card2)}
+.tx-logo img{width:100%;height:100%;object-fit:contain;border-radius:12px}
+.tx-info{flex:1;min-width:0}
+.tx-merchant{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-cat{font-size:12px;color:var(--muted);margin-top:2px}
+.tx-amount{font-size:16px;font-weight:700;flex-shrink:0}
+.tx-amount.expense{color:var(--red)}
+.tx-amount.income{color:var(--green)}
+/* Bottom nav */
+#bottom-nav{display:flex;background:var(--card);border-top:1px solid var(--border);padding-bottom:var(--safe-b)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0;background:none;border:none;color:var(--muted);font-size:10px;font-weight:500;cursor:pointer;transition:.15s}
+.nav-btn.active{color:var(--accent)}
+.nav-btn svg{width:22px;height:22px}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:flex-end;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:24px 24px 0 0;width:100%;padding:20px;padding-bottom:calc(20px + var(--safe-b));max-height:90vh;overflow-y:auto}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
+.field input,.field textarea,.field select{width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:var(--rs);color:var(--text);font-size:16px;padding:11px 13px;outline:none;font-family:inherit;-webkit-appearance:none}
+.field input:focus,.field textarea:focus{border-color:var(--accent)}
+.field select option{background:var(--card)}
+.btn{width:100%;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;font-size:16px;font-weight:700;padding:14px;cursor:pointer;margin-top:4px;transition:.15s;font-family:inherit}
+.btn:active{transform:scale(.98);opacity:.9}
+.btn.secondary{background:var(--card2);color:var(--text)}
+.btn.danger{background:#FF3B30}
+.btn.sm{padding:10px 16px;width:auto;font-size:14px}
+/* Source tabs */
+.source-tabs{display:flex;gap:8px;margin-bottom:18px}
+.stab{flex:1;padding:10px;background:var(--card2);border:1.5px solid var(--border);border-radius:var(--rs);text-align:center;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);transition:.15s}
+.stab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* Category picker */
+.cat-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.cat-item{background:var(--card2);border:2px solid var(--border);border-radius:var(--rs);padding:11px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:.15s}
+.cat-item.selected{border-color:var(--accent)}
+.cat-item:active{transform:scale(.96)}
+.cat-item-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.cat-item-name{font-size:13px;font-weight:600}
+/* Chart containers */
+.chart-wrap{position:relative;height:200px;margin:10px 0}
+.chart-wrap canvas{max-height:200px}
+.donut-wrap{position:relative;height:180px;margin:0 auto;width:180px}
+/* Section title */
+.section-title{font-size:16px;font-weight:700;margin-bottom:12px;margin-top:4px}
+/* Insight cards */
+.insight{background:linear-gradient(135deg,var(--card) 0%,var(--card2) 100%);border-radius:var(--r);padding:14px;margin-bottom:10px;border-left:3px solid var(--accent)}
+.insight .i-label{font-size:12px;color:var(--muted);margin-bottom:4px}
+.insight .i-text{font-size:14px;font-weight:600;line-height:1.4}
+/* Subscription items */
+.sub-item{background:var(--card);border-radius:var(--r);padding:13px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.sub-logo{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--card2);overflow:hidden;flex-shrink:0}
+.sub-logo img{width:100%;height:100%;object-fit:contain;border-radius:11px}
+.sub-info{flex:1}
+.sub-name{font-size:15px;font-weight:600}
+.sub-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.sub-amount{text-align:right}
+.sub-price{font-size:16px;font-weight:700}
+.sub-pct{font-size:11px;color:var(--muted);margin-top:2px}
+/* Compare */
+.cmp-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cmp-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.cmp-name{flex:1;font-size:14px;font-weight:600}
+.cmp-amounts{text-align:right}
+.cmp-curr{font-size:15px;font-weight:700}
+.cmp-prev{font-size:11px;color:var(--muted)}
+.cmp-delta{font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;margin-left:6px}
+.cmp-delta.up{background:rgba(255,96,96,.15);color:var(--red)}
+.cmp-delta.down{background:rgba(46,204,154,.15);color:var(--green)}
+/* Scan area */
+.scan-area{border:2px dashed var(--border);border-radius:var(--r);padding:30px 20px;text-align:center;cursor:pointer;margin-bottom:14px;transition:.15s}
+.scan-area:active{border-color:var(--accent)}
+.scan-area-icon{font-size:40px;margin-bottom:10px}
+.scan-area-text{color:var(--muted);font-size:14px}
+.scan-preview{width:100%;border-radius:var(--r);margin-bottom:14px;max-height:200px;object-fit:cover}
+/* Scanning overlay */
+#scan-loading{display:none;text-align:center;padding:20px}
+#scan-loading.show{display:block}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Tag */
+.tag{display:inline-block;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;margin-right:4px}
+/* Empty state */
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-text{font-size:15px;line-height:1.5}
+/* Toast */
+#toast{position:fixed;bottom:calc(80px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:200;opacity:0;transition:.3s;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* Cash badge */
+.cash-badge{background:rgba(249,200,74,.15);color:var(--yellow);border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700}
+/* Period selector */
+.period-sel{display:flex;gap:6px;margin-bottom:14px}
+.period-btn{flex:1;padding:8px;background:var(--card2);border:1.5px solid var(--border);border-radius:var(--rss);text-align:center;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:.15s}
+.period-btn.active{border-color:var(--accent);color:var(--accent2)}
+/* Tx change modal */
+.change-options{display:flex;flex-direction:column;gap:10px}
+.change-opt{background:var(--card2);border:1.5px solid var(--border);border-radius:var(--rs);padding:14px;cursor:pointer;transition:.15s}
+.change-opt:active{border-color:var(--accent)}
+.change-opt-title{font-size:15px;font-weight:600;margin-bottom:3px}
+.change-opt-desc{font-size:12px;color:var(--muted)}
+/* Add button fab */
+.fab{position:fixed;bottom:calc(70px + var(--safe-b));right:16px;width:52px;height:52px;background:var(--accent);border-radius:50%;border:none;color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(123,110,232,.4);cursor:pointer;transition:.15s;z-index:50}
+.fab:active{transform:scale(.92)}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Top -->
+  <div class="top-bar">
+    <h1 id="app-title">Финансы</h1>
+    <button class="btn-icon" id="btn-settings" onclick="App.openSettings()">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+  <div class="month-nav">
+    <button onclick="App.prevMonth()">‹</button>
+    <span id="month-label">Май 2026</span>
+    <button onclick="App.nextMonth()">›</button>
+  </div>
+
+  <!-- Screens -->
+  <div id="screen-dashboard" class="screen active" style="padding-bottom:80px"></div>
+  <div id="screen-transactions" class="screen" style="padding-bottom:80px"></div>
+  <div id="screen-subscriptions" class="screen" style="padding-bottom:80px"></div>
+  <div id="screen-analytics" class="screen" style="padding-bottom:80px"></div>
+
+  <!-- FAB -->
+  <button class="fab" onclick="App.openAddModal()">+</button>
+
+  <!-- Bottom nav -->
+  <nav id="bottom-nav">
+    <button class="nav-btn active" onclick="App.switchTab('dashboard')" id="nav-dashboard">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Главная
+    </button>
+    <button class="nav-btn" onclick="App.switchTab('transactions')" id="nav-transactions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+      Транзакции
+    </button>
+    <button class="nav-btn" onclick="App.switchTab('subscriptions')" id="nav-subscriptions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      Подписки
+    </button>
+    <button class="nav-btn" onclick="App.switchTab('analytics')" id="nav-analytics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Анализ
+    </button>
+  </nav>
+</div>
+
+<!-- Modal: Add transaction -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Добавить трату</h2>
+    <div class="source-tabs">
+      <div class="stab active" id="stab-manual" onclick="App.switchSource('manual')">Вручную</div>
+      <div class="stab" id="stab-scan" onclick="App.switchSource('scan')">Скрин банка</div>
+      <div class="stab" id="stab-cash" onclick="App.switchSource('cash')">Наличные</div>
+    </div>
+
+    <!-- Manual form -->
+    <div id="form-manual">
+      <div class="field">
+        <label>Название</label>
+        <input id="tx-merchant" type="text" placeholder="Название магазина">
+      </div>
+      <div class="field">
+        <label>Сумма (₽)</label>
+        <input id="tx-amount" type="number" placeholder="0" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Дата</label>
+        <input id="tx-date" type="date">
+      </div>
+      <div class="field">
+        <label>Категория</label>
+        <div id="tx-cat-select" onclick="App.openCatPicker('add')" style="background:var(--card2);border:1.5px solid var(--border);border-radius:var(--rs);padding:11px 13px;cursor:pointer;display:flex;align-items:center;gap:8px">
+          <span id="tx-cat-icon">📦</span>
+          <span id="tx-cat-name" style="font-size:15px">Другое</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Тип</label>
+        <select id="tx-type">
+          <option value="expense">Расход</option>
+          <option value="income">Доход</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Scan form -->
+    <div id="form-scan" style="display:none">
+      <div class="scan-area" id="scan-drop" onclick="document.getElementById('scan-input').click()">
+        <div class="scan-area-icon">📷</div>
+        <div class="scan-area-text">Нажмите чтобы выбрать скрин из Альфа Банка</div>
+      </div>
+      <input type="file" id="scan-input" accept="image/*" style="display:none" onchange="App.handleScanFile(this)">
+      <img id="scan-preview" class="scan-preview" style="display:none">
+      <div id="scan-loading">
+        <div class="spinner"></div>
+        <div style="color:var(--muted);font-size:14px">Распознаю транзакции...</div>
+      </div>
+    </div>
+
+    <!-- Cash form -->
+    <div id="form-cash" style="display:none">
+      <div class="field">
+        <label>Название / Что купил</label>
+        <input id="cash-merchant" type="text" placeholder="Продукты, такси...">
+      </div>
+      <div class="field">
+        <label>Сумма (₽)</label>
+        <input id="cash-amount" type="number" placeholder="0" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Дата</label>
+        <input id="cash-date" type="date">
+      </div>
+      <div class="field">
+        <label>Категория</label>
+        <div id="cash-cat-select" onclick="App.openCatPicker('cash')" style="background:var(--card2);border:1.5px solid var(--border);border-radius:var(--rs);padding:11px 13px;cursor:pointer;display:flex;align-items:center;gap:8px">
+          <span id="cash-cat-icon">💵</span>
+          <span id="cash-cat-name" style="font-size:15px">Наличные</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" id="btn-save-tx" onclick="App.saveTransaction()">Добавить</button>
+    <button class="btn secondary" style="margin-top:8px" onclick="App.closeModal('modal-add')">Отмена</button>
+  </div>
+</div>
+
+<!-- Modal: Category picker -->
+<div class="modal-overlay" id="modal-cat-picker">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Выберите категорию</h2>
+    <div id="cat-list-grid" class="cat-list"></div>
+    <button class="btn secondary" onclick="App.openNewCatModal()">+ Новая категория</button>
+    <button class="btn secondary" style="margin-top:8px" onclick="App.closeModal('modal-cat-picker')">Отмена</button>
+  </div>
+</div>
+
+<!-- Modal: New category -->
+<div class="modal-overlay" id="modal-new-cat">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Новая категория</h2>
+    <div class="field">
+      <label>Название</label>
+      <input id="new-cat-name" type="text" placeholder="Например: Питомец">
+    </div>
+    <div class="field">
+      <label>Эмодзи</label>
+      <input id="new-cat-icon" type="text" placeholder="🐾" maxlength="2" style="font-size:24px;text-align:center">
+    </div>
+    <div class="field">
+      <label>Цвет</label>
+      <input id="new-cat-color" type="color" value="#7B6EE8" style="width:100%;height:44px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--card2);cursor:pointer">
+    </div>
+    <button class="btn" onclick="App.saveNewCategory()">Создать</button>
+    <button class="btn secondary" style="margin-top:8px" onclick="App.closeModal('modal-new-cat')">Отмена</button>
+  </div>
+</div>
+
+<!-- Modal: Change category -->
+<div class="modal-overlay" id="modal-change-cat">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Изменить категорию</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px" id="change-cat-subtitle"></p>
+    <div id="change-cat-grid" class="cat-list" style="margin-bottom:16px"></div>
+    <div id="change-scope-options" class="change-options" style="display:none">
+      <div class="change-opt" onclick="App.confirmCategoryChange('once')">
+        <div class="change-opt-title">Только для этой транзакции</div>
+        <div class="change-opt-desc">Остальные покупки у этого продавца останутся без изменений</div>
+      </div>
+      <div class="change-opt" onclick="App.confirmCategoryChange('always')">
+        <div class="change-opt-title" id="change-opt-always-title">Всегда для этого продавца</div>
+        <div class="change-opt-desc">Все будущие покупки здесь попадут в эту категорию</div>
+      </div>
+    </div>
+    <button class="btn secondary" style="margin-top:8px" onclick="App.closeModal('modal-change-cat')">Отмена</button>
+  </div>
+</div>
+
+<!-- Modal: Settings -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Настройки</h2>
+    <div class="field">
+      <label>API ключ Claude</label>
+      <input id="settings-apikey" type="password" placeholder="sk-ant-api03-...">
+    </div>
+    <button class="btn" onclick="App.saveSettings()">Сохранить</button>
+    <div style="margin-top:20px">
+      <p class="section-title" style="font-size:14px;margin-bottom:12px">Категории</p>
+      <div id="settings-cats"></div>
+    </div>
+    <button class="btn danger" style="margin-top:20px" onclick="App.confirmClearData()">Очистить все данные</button>
+    <button class="btn secondary" style="margin-top:8px" onclick="App.closeModal('modal-settings')">Закрыть</button>
+  </div>
+</div>
+
+<!-- Modal: First launch / API key setup -->
+<div class="modal-overlay" id="modal-setup" style="align-items:center">
+  <div class="modal" style="border-radius:24px;margin:16px;padding:28px">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:48px;margin-bottom:12px">💳</div>
+      <h2 style="margin-bottom:8px">Добро пожаловать</h2>
+      <p style="color:var(--muted);font-size:14px;line-height:1.5">Для распознавания скринов банка нужен API ключ Claude.<br>Он сохранится в браузере.</p>
+    </div>
+    <div class="field">
+      <label>API ключ Anthropic</label>
+      <input id="setup-apikey" type="password" placeholder="sk-ant-api03-..." style="font-size:14px">
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5">
+      Получить ключ: <span style="color:var(--accent2)">console.anthropic.com → API Keys</span>
+    </p>
+    <button class="btn" onclick="App.saveSetupKey()">Продолжить</button>
+    <button class="btn secondary" style="margin-top:8px" onclick="App.skipSetup()">Пропустить</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+const CLAUDE_KEY_DEFAULT = '';
+
+const DEFAULT_CATEGORIES = [
+  {id:'food',name:'Еда',icon:'🍽️',color:'#FF6B6B',isCustom:false},
+  {id:'transport',name:'Транспорт',icon:'🚗',color:'#74B9FF',isCustom:false},
+  {id:'shopping',name:'Покупки',icon:'🛍️',color:'#A29BFE',isCustom:false},
+  {id:'entertainment',name:'Развлечения',icon:'🎮',color:'#FD79A8',isCustom:false},
+  {id:'health',name:'Здоровье',icon:'💊',color:'#55EFC4',isCustom:false},
+  {id:'subscriptions',name:'Подписки',icon:'📱',color:'#FDCB6E',isCustom:false},
+  {id:'utilities',name:'ЖКХ',icon:'🏠',color:'#8E9EAB',isCustom:false},
+  {id:'cash',name:'Наличные',icon:'💵',color:'#F9CA24',isCustom:false},
+  {id:'other',name:'Другое',icon:'📦',color:'#636E72',isCustom:false},
+];
+
+const MERCHANT_DOMAINS = {
+  'вкусвилл':['vkusvill.ru','food'],'ozon':['ozon.ru','shopping'],'wb':['wildberries.ru','shopping'],
+  'wildberries':['wildberries.ru','shopping'],'яндекс такси':['yandex.ru','transport'],
+  'яндекс go':['yandex.ru','transport'],'яндекс еда':['yandex.ru','food'],
+  'delivery':['deliveryclub.ru','food'],'самокат':['samokat.ru','food'],
+  'сбермаркет':['sbermarket.ru','food'],'netflix':['netflix.com','subscriptions'],
+  'spotify':['spotify.com','subscriptions'],'apple':['apple.com','subscriptions'],
+  'google':['google.com','subscriptions'],'мвидео':['mvideo.ru','shopping'],
+  'лента':['lenta.com','food'],'пятерочка':['pyaterochka.ru','food'],
+  'пятёрочка':['pyaterochka.ru','food'],'перекресток':['perekrestok.ru','food'],
+  'перекрёсток':['perekrestok.ru','food'],'магнит':['magnit.ru','food'],
+  'vpn':['nordvpn.com','subscriptions'],'аптека':['apteka.ru','health'],
+  'ригла':['rigla.ru','health'],'36.6':['366.ru','health'],
+  'кино':['kinopoisk.ru','entertainment'],'кинопоиск':['kinopoisk.ru','entertainment'],
+  'okko':['okko.tv','entertainment'],'ivi':['ivi.ru','entertainment'],
+  'mts':['mts.ru','subscriptions'],'мтс':['mts.ru','subscriptions'],
+  'билайн':['beeline.ru','subscriptions'],'мегафон':['megafon.ru','subscriptions'],
+  'zoom':['zoom.us','subscriptions'],'telegram':['telegram.org','subscriptions'],
+};
+
+const MONTHS_RU = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+  'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+const App = {
+  state: {
+    transactions: [],
+    categories: [...DEFAULT_CATEGORIES],
+    merchantMap: {},  // merchant -> categoryId
+    currentMonth: new Date().toISOString().slice(0,7),
+    currentTab: 'dashboard',
+    apiKey: CLAUDE_KEY_DEFAULT,
+    _addSource: 'manual',
+    _catPickerTarget: null,   // 'add'|'cash'|null
+    _changeCatTxId: null,
+    _changeCatNewCatId: null,
+    _charts: {},
+  },
+
+  init() {
+    this.load();
+    this.renderMonthLabel();
+    this.renderDashboard();
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('tx-date').value = today;
+    document.getElementById('cash-date').value = today;
+    document.getElementById('settings-apikey').value = this.state.apiKey;
+    if (!this.state.apiKey) {
+      this.openModal('modal-setup');
+    }
+  },
+  saveSetupKey() {
+    const key = document.getElementById('setup-apikey').value.trim();
+    if (!key || !key.startsWith('sk-ant')) { this.toast('Введите корректный ключ'); return; }
+    this.state.apiKey = key;
+    this.save();
+    document.getElementById('settings-apikey').value = key;
+    this.closeModal('modal-setup');
+    this.toast('Ключ сохранён');
+  },
+  skipSetup() {
+    this.closeModal('modal-setup');
+  },
+
+  // ── Storage ──────────────────────────────────────────────────────
+  save() {
+    localStorage.setItem('fin_transactions', JSON.stringify(this.state.transactions));
+    localStorage.setItem('fin_categories', JSON.stringify(this.state.categories));
+    localStorage.setItem('fin_merchantmap', JSON.stringify(this.state.merchantMap));
+    localStorage.setItem('fin_apikey', this.state.apiKey);
+  },
+  load() {
+    try {
+      const tx = localStorage.getItem('fin_transactions');
+      if (tx) this.state.transactions = JSON.parse(tx);
+      const cats = localStorage.getItem('fin_categories');
+      if (cats) this.state.categories = JSON.parse(cats);
+      const mmap = localStorage.getItem('fin_merchantmap');
+      if (mmap) this.state.merchantMap = JSON.parse(mmap);
+      const key = localStorage.getItem('fin_apikey');
+      if (key) this.state.apiKey = key;
+    } catch(e){}
+  },
+
+  // ── Helpers ──────────────────────────────────────────────────────
+  getCategory(id) {
+    return this.state.categories.find(c=>c.id===id) || this.state.categories.find(c=>c.id==='other');
+  },
+  getCategoryForMerchant(merchant) {
+    const lc = merchant.toLowerCase();
+    // Check saved merchant map
+    if (this.state.merchantMap[lc]) return this.state.merchantMap[lc];
+    // Auto-detect
+    for (const [key,[,catId]] of Object.entries(MERCHANT_DOMAINS)) {
+      if (lc.includes(key)) return catId;
+    }
+    return 'other';
+  },
+  getDomainForMerchant(merchant) {
+    const lc = merchant.toLowerCase();
+    for (const [key,[domain]] of Object.entries(MERCHANT_DOMAINS)) {
+      if (lc.includes(key)) return domain;
+    }
+    return null;
+  },
+  formatAmount(amount, type='expense') {
+    const fmt = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(Math.abs(amount));
+    return (type==='income'?'+':'-') + fmt + ' ₽';
+  },
+  formatDate(dateStr) {
+    const d = new Date(dateStr+'T12:00:00');
+    return d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  },
+  groupByDate(txs) {
+    const groups = {};
+    txs.forEach(tx=>{
+      if (!groups[tx.date]) groups[tx.date]=[];
+      groups[tx.date].push(tx);
+    });
+    return groups;
+  },
+  getMonthTxs(month) {
+    return this.state.transactions.filter(tx=>tx.date.startsWith(month) && tx.type==='expense');
+  },
+  getMonthTotal(month) {
+    return this.getMonthTxs(month).reduce((s,t)=>s+t.amount,0);
+  },
+  prevMonthStr(month) {
+    const [y,m] = month.split('-').map(Number);
+    const d = new Date(y,m-2,1);
+    return d.toISOString().slice(0,7);
+  },
+  makeId() {
+    return Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  },
+  renderLogoEl(merchant, domain, size=42, br=12) {
+    const cat = this.getCategory(this.getCategoryForMerchant(merchant));
+    let inner = '';
+    if (domain) {
+      inner = `<img src="https://logo.clearbit.com/${domain}" onerror="this.parentNode.innerHTML='<span>${merchant.slice(0,2).toUpperCase()}</span>';this.parentNode.style.background='${cat.color}30';this.parentNode.style.color='${cat.color}';this.parentNode.style.fontSize='14px';this.parentNode.style.fontWeight='700'">`;
+    } else {
+      inner = `<span style="background:${cat.color}20;color:${cat.color};font-size:19px;width:${size}px;height:${size}px;border-radius:${br}px;display:flex;align-items:center;justify-content:center">${cat.icon}</span>`;
+    }
+    return `<div class="tx-logo" style="border-radius:${br}px">${inner}</div>`;
+  },
+
+  // ── Month nav ────────────────────────────────────────────────────
+  prevMonth() {
+    this.state.currentMonth = this.prevMonthStr(this.state.currentMonth);
+    this.renderMonthLabel();
+    this.renderCurrentTab();
+  },
+  nextMonth() {
+    const [y,m] = this.state.currentMonth.split('-').map(Number);
+    const d = new Date(y,m,1);
+    const next = d.toISOString().slice(0,7);
+    if (next > new Date().toISOString().slice(0,7)) return;
+    this.state.currentMonth = next;
+    this.renderMonthLabel();
+    this.renderCurrentTab();
+  },
+  renderMonthLabel() {
+    const [y,m] = this.state.currentMonth.split('-').map(Number);
+    document.getElementById('month-label').textContent = MONTHS_RU[m-1]+' '+y;
+  },
+
+  // ── Tab switching ─────────────────────────────────────────────────
+  switchTab(tab) {
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('screen-'+tab).classList.add('active');
+    document.getElementById('nav-'+tab).classList.add('active');
+    this.state.currentTab = tab;
+    this.renderCurrentTab();
+  },
+  renderCurrentTab() {
+    const tab = this.state.currentTab;
+    if (tab==='dashboard') this.renderDashboard();
+    else if (tab==='transactions') this.renderTransactions();
+    else if (tab==='subscriptions') this.renderSubscriptions();
+    else if (tab==='analytics') this.renderAnalytics();
+  },
+
+  // ── Dashboard ────────────────────────────────────────────────────
+  renderDashboard() {
+    const month = this.state.currentMonth;
+    const txs = this.getMonthTxs(month);
+    const total = txs.reduce((s,t)=>s+t.amount,0);
+    const prevMonth = this.prevMonthStr(month);
+    const prevTotal = this.getMonthTotal(prevMonth);
+    const delta = prevTotal > 0 ? ((total-prevTotal)/prevTotal*100) : 0;
+
+    // Category breakdown
+    const catTotals = {};
+    txs.forEach(t=>{
+      catTotals[t.categoryId] = (catTotals[t.categoryId]||0)+t.amount;
+    });
+    const sorted = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+    const maxCat = sorted[0] ? sorted[0][1] : 1;
+
+    let compareHtml = '';
+    if (prevTotal > 0) {
+      const sign = delta > 0 ? '+' : '';
+      compareHtml = `<div class="compare ${delta>0?'up':delta<0?'down':'same'}">${sign}${delta.toFixed(0)}% к прошлому месяцу</div>`;
+    }
+
+    let catCards = '';
+    sorted.slice(0,6).forEach(([catId,amt])=>{
+      const cat = this.getCategory(catId);
+      const pct = (amt/total*100).toFixed(0);
+      catCards += `
+        <div class="cat-card" onclick="App.switchTab('transactions')">
+          <div class="cc-header">
+            <div class="cc-icon" style="background:${cat.color}20;color:${cat.color}">${cat.icon}</div>
+            <div class="cc-name">${cat.name}</div>
+          </div>
+          <div class="cc-amount">${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(amt)} ₽</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${pct}%</div>
+          <div class="cc-bar"><div class="cc-bar-fill" style="width:${(amt/maxCat*100).toFixed(0)}%;background:${cat.color}"></div></div>
+        </div>`;
+    });
+
+    // Recent transactions (last 5)
+    const recent = [...this.state.transactions]
+      .filter(t=>t.date.startsWith(month))
+      .sort((a,b)=>b.date.localeCompare(a.date))
+      .slice(0,5);
+
+    let recentHtml = '';
+    recent.forEach(tx=>{
+      const cat = this.getCategory(tx.categoryId);
+      const domain = tx.merchantDomain || this.getDomainForMerchant(tx.merchant);
+      recentHtml += `
+        <div class="tx-item" onclick="App.openChangeCat('${tx.id}')">
+          ${this.renderLogoEl(tx.merchant, domain)}
+          <div class="tx-info">
+            <div class="tx-merchant">${tx.merchant}${tx.isCash?'<span class="cash-badge" style="margin-left:6px">Нал</span>':''}</div>
+            <div class="tx-cat">${cat.icon} ${cat.name}</div>
+          </div>
+          <div class="tx-amount ${tx.type}">${this.formatAmount(tx.amount,tx.type)}</div>
+        </div>`;
+    });
+
+    let donutHtml = '';
+    if (sorted.length > 0) {
+      donutHtml = `
+        <div class="card" style="margin-bottom:12px">
+          <div class="section-title">По категориям</div>
+          <div class="donut-wrap"><canvas id="chart-donut"></canvas></div>
+        </div>`;
+    }
+
+    const el = document.getElementById('screen-dashboard');
+    el.innerHTML = `
+      <div class="total-card">
+        <div class="label">Потрачено в ${MONTHS_RU[parseInt(month.split('-')[1])-1]}</div>
+        <div class="amount">${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(total)}<span> ₽</span></div>
+        ${compareHtml}
+      </div>
+      ${donutHtml}
+      ${sorted.length>0?`<div class="cat-grid">${catCards}</div>`:''}
+      ${recent.length>0?`
+        <div class="section-title">Последние траты</div>
+        ${recentHtml}
+      `:`<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Нет трат за этот месяц.<br>Добавьте первую транзакцию.</div></div>`}
+    `;
+
+    if (sorted.length > 0) {
+      requestAnimationFrame(()=>this.renderDonutChart(sorted));
+    }
+  },
+
+  renderDonutChart(sorted) {
+    const ctx = document.getElementById('chart-donut');
+    if (!ctx) return;
+    if (this.state._charts['donut']) this.state._charts['donut'].destroy();
+    const labels = sorted.slice(0,6).map(([id])=>this.getCategory(id).name);
+    const data = sorted.slice(0,6).map(([,v])=>v);
+    const colors = sorted.slice(0,6).map(([id])=>this.getCategory(id).color);
+    this.state._charts['donut'] = new Chart(ctx,{
+      type:'doughnut',
+      data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0,hoverOffset:6}]},
+      options:{
+        cutout:'70%',
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){
+          const total=c.dataset.data.reduce((a,b)=>a+b,0);
+          return `${c.label}: ${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(c.raw)} ₽ (${(c.raw/total*100).toFixed(0)}%)`;
+        }}}},
+        animation:{duration:600}
+      }
+    });
+  },
+
+  // ── Transactions ─────────────────────────────────────────────────
+  renderTransactions() {
+    const month = this.state.currentMonth;
+    const txs = [...this.state.transactions]
+      .filter(t=>t.date.startsWith(month))
+      .sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt);
+
+    const el = document.getElementById('screen-transactions');
+    if (txs.length === 0) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Нет транзакций за этот месяц</div></div>`;
+      return;
+    }
+
+    const groups = this.groupByDate(txs);
+    let html = '';
+    for (const [date, items] of Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0]))) {
+      const dayTotal = items.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+      html += `<div class="tx-group">
+        <div class="tx-date" style="display:flex;justify-content:space-between">
+          <span>${this.formatDate(date)}</span>
+          <span style="color:var(--red);font-weight:700">-${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(dayTotal)} ₽</span>
+        </div>`;
+      items.forEach(tx=>{
+        const cat = this.getCategory(tx.categoryId);
+        const domain = tx.merchantDomain || this.getDomainForMerchant(tx.merchant);
+        html += `
+          <div class="tx-item" onclick="App.openChangeCat('${tx.id}')">
+            ${this.renderLogoEl(tx.merchant, domain)}
+            <div class="tx-info">
+              <div class="tx-merchant">${tx.merchant}${tx.isCash?'<span class="cash-badge" style="margin-left:6px">Нал</span>':''}</div>
+              <div class="tx-cat">${cat.icon} ${cat.name}</div>
+            </div>
+            <div class="tx-amount ${tx.type}">${this.formatAmount(tx.amount,tx.type)}</div>
+          </div>`;
+      });
+      html += '</div>';
+    }
+    el.innerHTML = html;
+  },
+
+  // ── Subscriptions ─────────────────────────────────────────────────
+  renderSubscriptions() {
+    const allTxs = this.state.transactions.filter(t=>t.type==='expense');
+    // Detect subscriptions: merchant appears in 2+ different months
+    const merchantMonths = {};
+    allTxs.forEach(t=>{
+      const key = t.merchant.toLowerCase();
+      if (!merchantMonths[key]) merchantMonths[key]={months:new Set(),amounts:[],merchant:t.merchant,catId:t.categoryId,domain:t.merchantDomain||this.getDomainForMerchant(t.merchant)};
+      merchantMonths[key].months.add(t.date.slice(0,7));
+      merchantMonths[key].amounts.push(t.amount);
+    });
+    const subs = Object.values(merchantMonths).filter(m=>m.months.size>=2);
+    subs.sort((a,b)=>{
+      const avgA=a.amounts.reduce((s,v)=>s+v,0)/a.amounts.length;
+      const avgB=b.amounts.reduce((s,v)=>s+v,0)/b.amounts.length;
+      return avgB-avgA;
+    });
+
+    const month = this.state.currentMonth;
+    const monthTotal = this.getMonthTotal(month);
+
+    const el = document.getElementById('screen-subscriptions');
+    if (subs.length === 0) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📱</div><div class="empty-text">Подписки не найдены.<br>Они появятся после 2+ месяцев трат.</div></div>`;
+      return;
+    }
+
+    const totalSubAmt = subs.reduce((s,sub)=>{
+      const avg = sub.amounts.reduce((a,b)=>a+b,0)/sub.amounts.length;
+      return s+avg;
+    },0);
+    const pctOfMonth = monthTotal > 0 ? (totalSubAmt/monthTotal*100).toFixed(0) : 0;
+
+    let html = `
+      <div class="card" style="margin-bottom:14px">
+        <div class="label" style="font-size:12px;color:var(--muted);margin-bottom:4px">Подписки от бюджета</div>
+        <div style="font-size:32px;font-weight:800">${pctOfMonth}%</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px">~${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(totalSubAmt)} ₽/мес</div>
+      </div>`;
+
+    subs.forEach(sub=>{
+      const avg = sub.amounts.reduce((a,b)=>a+b,0)/sub.amounts.length;
+      const pct = monthTotal > 0 ? (avg/monthTotal*100).toFixed(0) : 0;
+      const cat = this.getCategory(sub.catId);
+      let logoInner = '';
+      if (sub.domain) {
+        logoInner = `<img src="https://logo.clearbit.com/${sub.domain}" onerror="this.parentNode.innerHTML='${cat.icon}';this.parentNode.style.fontSize='20px'">`;
+      } else {
+        logoInner = cat.icon;
+      }
+      html += `
+        <div class="sub-item">
+          <div class="sub-logo" style="${!sub.domain?'font-size:20px':''}">${logoInner}</div>
+          <div class="sub-info">
+            <div class="sub-name">${sub.merchant}</div>
+            <div class="sub-meta">${sub.months.size} мес · ${cat.icon} ${cat.name}</div>
+          </div>
+          <div class="sub-amount">
+            <div class="sub-price">${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(avg)} ₽</div>
+            <div class="sub-pct">${pct}% бюджета</div>
+          </div>
+        </div>`;
+    });
+    el.innerHTML = html;
+  },
+
+  // ── Analytics ─────────────────────────────────────────────────────
+  renderAnalytics() {
+    const month = this.state.currentMonth;
+    const prevMonth = this.prevMonthStr(month);
+    const txs = this.getMonthTxs(month);
+    const prevTxs = this.getMonthTxs(prevMonth);
+    const total = txs.reduce((s,t)=>s+t.amount,0);
+    const prevTotal = prevTxs.reduce((s,t)=>s+t.amount,0);
+
+    // By category comparison
+    const catTotals = {}, prevCatTotals = {};
+    txs.forEach(t=>{ catTotals[t.categoryId]=(catTotals[t.categoryId]||0)+t.amount; });
+    prevTxs.forEach(t=>{ prevCatTotals[t.categoryId]=(prevCatTotals[t.categoryId]||0)+t.amount; });
+
+    const allCats = [...new Set([...Object.keys(catTotals),...Object.keys(prevCatTotals)])];
+    allCats.sort((a,b)=>(catTotals[b]||0)-(catTotals[a]||0));
+
+    let cmpRows = '';
+    allCats.forEach(catId=>{
+      const cat = this.getCategory(catId);
+      const curr = catTotals[catId]||0;
+      const prev = prevCatTotals[catId]||0;
+      const delta = prev > 0 ? ((curr-prev)/prev*100) : 0;
+      const deltaStr = prev > 0 ? `<span class="cmp-delta ${delta>0?'up':'down'}">${delta>0?'+':''}${delta.toFixed(0)}%</span>` : '';
+      cmpRows += `
+        <div class="cmp-row">
+          <div class="cmp-icon" style="background:${cat.color}20;color:${cat.color}">${cat.icon}</div>
+          <div class="cmp-name">${cat.name}</div>
+          <div style="display:flex;align-items:center">
+            ${deltaStr}
+            <div class="cmp-amounts">
+              <div class="cmp-curr" style="${curr>prev?'color:var(--red)':curr<prev?'color:var(--green)':''}">${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(curr)} ₽</div>
+              ${prev>0?`<div class="cmp-prev">было ${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(prev)} ₽</div>`:''}
+            </div>
+          </div>
+        </div>`;
+    });
+
+    // Insights
+    const insights = this.generateInsights(txs, prevTxs, total, prevTotal);
+    let insightsHtml = insights.map(i=>`
+      <div class="insight">
+        <div class="i-label">${i.label}</div>
+        <div class="i-text">${i.text}</div>
+      </div>`).join('');
+
+    // Weekly bar chart data
+    const weekData = [0,0,0,0,0];
+    txs.forEach(t=>{
+      const d = new Date(t.date+'T12:00:00');
+      const week = Math.min(Math.floor((d.getDate()-1)/7), 4);
+      weekData[week]+=t.amount;
+    });
+
+    const [py,pm] = prevMonth.split('-').map(Number);
+    const [cy,cm] = month.split('-').map(Number);
+
+    const el = document.getElementById('screen-analytics');
+    el.innerHTML = `
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Этот месяц</div>
+            <div style="font-size:26px;font-weight:800">${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(total)} ₽</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${MONTHS_RU[pm-1]}</div>
+            <div style="font-size:20px;font-weight:700;color:var(--muted)">${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(prevTotal)} ₽</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-bar"></canvas></div>
+      </div>
+      ${insightsHtml}
+      <div class="section-title" style="margin-top:8px">По категориям</div>
+      <div class="card">
+        ${cmpRows || '<div style="color:var(--muted);text-align:center;padding:20px">Нет данных</div>'}
+      </div>
+    `;
+
+    requestAnimationFrame(()=>this.renderBarChart(weekData));
+  },
+
+  renderBarChart(weekData) {
+    const ctx = document.getElementById('chart-bar');
+    if (!ctx) return;
+    if (this.state._charts['bar']) this.state._charts['bar'].destroy();
+    this.state._charts['bar'] = new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:['1 нед','2 нед','3 нед','4 нед','5 нед'],
+        datasets:[{
+          data:weekData,
+          backgroundColor:'rgba(123,110,232,0.6)',
+          borderRadius:6,
+          hoverBackgroundColor:'rgba(123,110,232,0.9)',
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(c.raw)} ₽`}}},
+        scales:{
+          x:{grid:{display:false},ticks:{color:'#6B6B80',font:{size:11}}},
+          y:{grid:{color:'#1C1C2A'},ticks:{color:'#6B6B80',font:{size:11},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}},
+        },
+        animation:{duration:500}
+      }
+    });
+  },
+
+  generateInsights(txs, prevTxs, total, prevTotal) {
+    const insights = [];
+    if (txs.length === 0) return insights;
+
+    // Top category
+    const catTotals = {};
+    txs.forEach(t=>{ catTotals[t.categoryId]=(catTotals[t.categoryId]||0)+t.amount; });
+    const topCat = Object.entries(catTotals).sort((a,b)=>b[1]-a[1])[0];
+    if (topCat) {
+      const cat = this.getCategory(topCat[0]);
+      const pct = (topCat[1]/total*100).toFixed(0);
+      insights.push({label:'Главная статья расходов',text:`${cat.icon} ${cat.name} — ${pct}% бюджета (${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(topCat[1])} ₽)`});
+    }
+
+    // Compare to prev
+    if (prevTotal > 0) {
+      const delta = total - prevTotal;
+      const sign = delta > 0 ? '+' : '';
+      insights.push({
+        label:'Сравнение с прошлым месяцем',
+        text: delta > 0
+          ? `Потратили на ${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(delta)} ₽ больше`
+          : `Сэкономили ${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(Math.abs(delta))} ₽ по сравнению с прошлым месяцем`
+      });
+    }
+
+    // Most expensive day of week
+    const dowTotals = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+    const dowNames = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+    txs.forEach(t=>{
+      const dow = new Date(t.date+'T12:00:00').getDay();
+      dowTotals[dow]+=t.amount;
+    });
+    const topDow = Object.entries(dowTotals).sort((a,b)=>b[1]-a[1])[0];
+    if (topDow && topDow[1] > 0) {
+      insights.push({label:'Самый расходный день',text:`${dowNames[topDow[0]]} — ${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(topDow[1])} ₽`});
+    }
+
+    // Top merchant
+    const merTotals = {};
+    txs.forEach(t=>{ merTotals[t.merchant]=(merTotals[t.merchant]||0)+t.amount; });
+    const topMer = Object.entries(merTotals).sort((a,b)=>b[1]-a[1])[0];
+    if (topMer) {
+      const pct = (topMer[1]/total*100).toFixed(0);
+      insights.push({label:'Любимое место',text:`${topMer[0]} — ${pct}% трат (${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(topMer[1])} ₽)`});
+    }
+
+    // Avg per day
+    const days = txs.length > 0 ? [...new Set(txs.map(t=>t.date))].length : 1;
+    const avgDay = total/days;
+    insights.push({label:'Средние траты в день',text:`${new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(avgDay)} ₽`});
+
+    return insights;
+  },
+
+  // ── Add transaction modal ─────────────────────────────────────────
+  openAddModal() {
+    this.state._addSource = 'manual';
+    this.state._selectedCatId = 'other';
+    this.state._selectedCashCatId = 'cash';
+    document.getElementById('tx-merchant').value = '';
+    document.getElementById('tx-amount').value = '';
+    document.getElementById('tx-type').value = 'expense';
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('tx-date').value = today;
+    document.getElementById('cash-date').value = today;
+    document.getElementById('cash-merchant').value = '';
+    document.getElementById('cash-amount').value = '';
+    document.getElementById('scan-preview').style.display = 'none';
+    document.getElementById('scan-loading').classList.remove('show');
+    this.switchSource('manual');
+    this.openModal('modal-add');
+  },
+  switchSource(src) {
+    this.state._addSource = src;
+    document.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+    document.getElementById('stab-'+src).classList.add('active');
+    document.getElementById('form-manual').style.display = src==='manual'?'':'none';
+    document.getElementById('form-scan').style.display = src==='scan'?'':'none';
+    document.getElementById('form-cash').style.display = src==='cash'?'':'none';
+    const btn = document.getElementById('btn-save-tx');
+    btn.textContent = src==='scan'?'Транзакции уже добавлены':'Добавить';
+    if (src==='scan') btn.style.display='none'; else btn.style.display='';
+  },
+
+  saveTransaction() {
+    const src = this.state._addSource;
+    if (src === 'manual') {
+      const merchant = document.getElementById('tx-merchant').value.trim();
+      const amount = parseFloat(document.getElementById('tx-amount').value);
+      const date = document.getElementById('tx-date').value;
+      const type = document.getElementById('tx-type').value;
+      const catId = this.state._selectedCatId || 'other';
+      if (!merchant || !amount || !date) { this.toast('Заполните все поля'); return; }
+      const domain = this.getDomainForMerchant(merchant);
+      this.addTransaction({merchant,amount,date,type,categoryId:catId,merchantDomain:domain,isCash:false});
+    } else if (src === 'cash') {
+      const merchant = document.getElementById('cash-merchant').value.trim() || 'Наличные';
+      const amount = parseFloat(document.getElementById('cash-amount').value);
+      const date = document.getElementById('cash-date').value;
+      const catId = this.state._selectedCashCatId || 'cash';
+      if (!amount || !date) { this.toast('Введите сумму'); return; }
+      this.addTransaction({merchant,amount,date,type:'expense',categoryId:catId,merchantDomain:null,isCash:true});
+    }
+    this.closeModal('modal-add');
+    this.renderCurrentTab();
+    this.toast('Добавлено');
+  },
+
+  addTransaction(data) {
+    const catId = data.categoryId || this.getCategoryForMerchant(data.merchant);
+    const tx = {
+      id: this.makeId(),
+      date: data.date,
+      merchant: data.merchant,
+      merchantDomain: data.merchantDomain || this.getDomainForMerchant(data.merchant),
+      amount: Math.abs(data.amount),
+      type: data.type || 'expense',
+      categoryId: catId,
+      isCash: data.isCash || false,
+      createdAt: Date.now()
+    };
+    this.state.transactions.push(tx);
+    this.save();
+    return tx;
+  },
+
+  // ── Scan ──────────────────────────────────────────────────────────
+  async handleScanFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e)=>{
+      const base64 = e.target.result.split(',')[1];
+      const preview = document.getElementById('scan-preview');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      document.getElementById('scan-drop').style.display = 'none';
+      document.getElementById('scan-loading').classList.add('show');
+      try {
+        const txs = await this.scanImageWithClaude(base64, file.type);
+        document.getElementById('scan-loading').classList.remove('show');
+        if (!txs || txs.length === 0) {
+          this.toast('Транзакции не найдены');
+          document.getElementById('scan-drop').style.display = '';
+          preview.style.display = 'none';
+          return;
+        }
+        txs.forEach(t=>{
+          const catId = t.categoryId || this.getCategoryForMerchant(t.merchant);
+          const domain = this.getDomainForMerchant(t.merchant);
+          this.addTransaction({...t,categoryId:catId,merchantDomain:domain});
+        });
+        this.closeModal('modal-add');
+        this.renderCurrentTab();
+        this.toast(`Добавлено ${txs.length} транзакций`);
+      } catch(err) {
+        document.getElementById('scan-loading').classList.remove('show');
+        document.getElementById('scan-drop').style.display = '';
+        this.toast('Ошибка распознавания');
+        console.error(err);
+      }
+    };
+    reader.readAsDataURL(file);
+  },
+
+  async scanImageWithClaude(base64, mediaType) {
+    const key = this.state.apiKey;
+    const today = new Date().toISOString().slice(0,10);
+    const prompt = `Это скриншот из мобильного приложения Альфа-Банка или другого российского банка. Сегодня ${today}.
+Найди ВСЕ транзакции на скриншоте и верни JSON массив.
+Каждая транзакция: {"date":"YYYY-MM-DD","merchant":"Название магазина/сервиса","amount":число,"type":"expense"}
+Правила:
+- amount — положительное число (рублей)
+- merchant — очищенное название (без кодов, без лишних символов)
+- date — если нет года, используй текущий год
+- Включай только списания (расходы), не включай пополнения
+- Верни ТОЛЬКО JSON массив, без пояснений
+
+Пример: [{"date":"2026-05-01","merchant":"ВкусВилл","amount":850,"type":"expense"}]`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:1024,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:mediaType,data:base64}},
+          {type:'text',text:prompt}
+        ]}]
+      })
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(()=>({}));
+      throw new Error(err.error?.message||'API error');
+    }
+    const data = await resp.json();
+    const text = data.content?.[0]?.text||'';
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+    return JSON.parse(match[0]);
+  },
+
+  // ── Category picker ───────────────────────────────────────────────
+  openCatPicker(target) {
+    this.state._catPickerTarget = target;
+    const grid = document.getElementById('cat-list-grid');
+    const selectedId = target==='cash' ? (this.state._selectedCashCatId||'cash') : (this.state._selectedCatId||'other');
+    grid.innerHTML = this.state.categories.map(cat=>`
+      <div class="cat-item ${cat.id===selectedId?'selected':''}" onclick="App.selectCat('${cat.id}')">
+        <div class="cat-item-icon" style="background:${cat.color}20;color:${cat.color}">${cat.icon}</div>
+        <div class="cat-item-name">${cat.name}</div>
+      </div>`).join('');
+    this.openModal('modal-cat-picker');
+  },
+  selectCat(catId) {
+    const cat = this.getCategory(catId);
+    const target = this.state._catPickerTarget;
+    if (target==='cash') {
+      this.state._selectedCashCatId = catId;
+      document.getElementById('cash-cat-icon').textContent = cat.icon;
+      document.getElementById('cash-cat-name').textContent = cat.name;
+    } else {
+      this.state._selectedCatId = catId;
+      document.getElementById('tx-cat-icon').textContent = cat.icon;
+      document.getElementById('tx-cat-name').textContent = cat.name;
+    }
+    this.closeModal('modal-cat-picker');
+  },
+  openNewCatModal() {
+    this.closeModal('modal-cat-picker');
+    this.openModal('modal-new-cat');
+  },
+  saveNewCategory() {
+    const name = document.getElementById('new-cat-name').value.trim();
+    const icon = document.getElementById('new-cat-icon').value.trim() || '📦';
+    const color = document.getElementById('new-cat-color').value;
+    if (!name) { this.toast('Введите название'); return; }
+    const id = 'cat_' + this.makeId();
+    this.state.categories.push({id,name,icon,color,isCustom:true});
+    this.save();
+    this.closeModal('modal-new-cat');
+    // Re-open cat picker
+    this.openCatPicker(this.state._catPickerTarget);
+    this.toast('Категория создана');
+  },
+
+  // ── Change category ───────────────────────────────────────────────
+  openChangeCat(txId) {
+    const tx = this.state.transactions.find(t=>t.id===txId);
+    if (!tx) return;
+    this.state._changeCatTxId = txId;
+    this.state._changeCatNewCatId = null;
+    document.getElementById('change-cat-subtitle').textContent = tx.merchant;
+    const grid = document.getElementById('change-cat-grid');
+    grid.innerHTML = this.state.categories.map(cat=>`
+      <div class="cat-item ${cat.id===tx.categoryId?'selected':''}" onclick="App.selectChangeCat('${cat.id}')">
+        <div class="cat-item-icon" style="background:${cat.color}20;color:${cat.color}">${cat.icon}</div>
+        <div class="cat-item-name">${cat.name}</div>
+      </div>`).join('');
+    document.getElementById('change-scope-options').style.display = 'none';
+    document.getElementById('change-cat-grid').style.display = 'grid';
+    this.openModal('modal-change-cat');
+  },
+  selectChangeCat(catId) {
+    const tx = this.state.transactions.find(t=>t.id===this.state._changeCatTxId);
+    if (!tx) return;
+    if (catId === tx.categoryId) { this.closeModal('modal-change-cat'); return; }
+    this.state._changeCatNewCatId = catId;
+    // Update grid selection
+    document.querySelectorAll('#change-cat-grid .cat-item').forEach(el=>el.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    // Show scope options
+    document.getElementById('change-cat-grid').style.display = 'none';
+    document.getElementById('change-opt-always-title').textContent = `Всегда для "${tx.merchant}"`;
+    document.getElementById('change-scope-options').style.display = 'flex';
+  },
+  confirmCategoryChange(scope) {
+    const txId = this.state._changeCatTxId;
+    const catId = this.state._changeCatNewCatId;
+    const tx = this.state.transactions.find(t=>t.id===txId);
+    if (!tx) return;
+    tx.categoryId = catId;
+    if (scope === 'always') {
+      this.state.merchantMap[tx.merchant.toLowerCase()] = catId;
+    }
+    this.save();
+    this.closeModal('modal-change-cat');
+    this.renderCurrentTab();
+    this.toast('Категория изменена');
+  },
+
+  // ── Settings ──────────────────────────────────────────────────────
+  openSettings() {
+    document.getElementById('settings-apikey').value = this.state.apiKey;
+    const catsEl = document.getElementById('settings-cats');
+    catsEl.innerHTML = this.state.categories.map(cat=>`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="width:28px;height:28px;border-radius:7px;background:${cat.color}20;color:${cat.color};display:flex;align-items:center;justify-content:center;font-size:15px">${cat.icon}</div>
+        <div style="flex:1;font-size:14px;font-weight:600">${cat.name}</div>
+        ${cat.isCustom?`<button class="btn danger sm" onclick="App.deleteCategory('${cat.id}')">Удалить</button>`:''}
+      </div>`).join('');
+    this.openModal('modal-settings');
+  },
+  saveSettings() {
+    const key = document.getElementById('settings-apikey').value.trim();
+    if (key) this.state.apiKey = key;
+    this.save();
+    this.closeModal('modal-settings');
+    this.toast('Сохранено');
+  },
+  deleteCategory(catId) {
+    this.state.categories = this.state.categories.filter(c=>c.id!==catId);
+    // Reassign transactions
+    this.state.transactions.forEach(t=>{ if(t.categoryId===catId) t.categoryId='other'; });
+    this.save();
+    this.openSettings();
+  },
+  confirmClearData() {
+    if (confirm('Удалить все транзакции?')) {
+      this.state.transactions = [];
+      this.save();
+      this.closeModal('modal-settings');
+      this.renderCurrentTab();
+      this.toast('Данные удалены');
+    }
+  },
+
+  // ── Modal helpers ─────────────────────────────────────────────────
+  openModal(id) {
+    document.getElementById(id).classList.add('open');
+  },
+  closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  },
+
+  // ── Toast ─────────────────────────────────────────────────────────
+  toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'),2200);
+  },
+};
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click',function(e){
+    if(e.target===this) this.classList.remove('open');
+  });
+});
+
+App.init();
+</script>
+</body>
+</html>
