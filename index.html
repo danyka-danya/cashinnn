@@ -230,9 +230,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="modal">
     <div class="modal-handle"></div>
     <h2>Добавить трату</h2>
-    <div class="source-tabs">
+    <div class="source-tabs" style="flex-wrap:wrap;gap:6px">
       <div class="stab active" id="stab-manual" onclick="App.switchSource('manual')">Вручную</div>
-      <div class="stab" id="stab-scan" onclick="App.switchSource('scan')">Скрин банка</div>
+      <div class="stab" id="stab-tg" onclick="App.switchSource('tg')">Из Telegram</div>
       <div class="stab" id="stab-cash" onclick="App.switchSource('cash')">Наличные</div>
     </div>
 
@@ -267,16 +267,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
 
     <!-- Scan form -->
-    <div id="form-scan" style="display:none">
-      <div class="scan-area" id="scan-drop" onclick="document.getElementById('scan-input').click()">
-        <div class="scan-area-icon">📷</div>
-        <div class="scan-area-text">Нажмите чтобы выбрать скрин из Альфа Банка</div>
+    <!-- Telegram import form -->
+    <div id="form-tg" style="display:none">
+      <div style="background:var(--card2);border-radius:var(--r);padding:14px;margin-bottom:14px">
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">
+          1. Скинь скрин банка боту в Telegram<br>
+          2. Получи JSON в ответ<br>
+          3. Вставь его сюда
+        </div>
       </div>
-      <input type="file" id="scan-input" accept="image/*" style="display:none" onchange="App.handleScanFile(this)">
-      <img id="scan-preview" class="scan-preview" style="display:none">
-      <div id="scan-loading">
-        <div class="spinner"></div>
-        <div style="color:var(--muted);font-size:14px">Распознаю транзакции...</div>
+      <div class="field">
+        <label>JSON от бота</label>
+        <textarea id="tg-json" placeholder='[{"date":"2026-05-01","merchant":"ВкусВилл","amount":850}]' style="width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:var(--rs);color:var(--text);font-size:13px;padding:11px 13px;outline:none;font-family:monospace;min-height:100px;resize:none;-webkit-appearance:none"></textarea>
       </div>
     </div>
 
@@ -1019,11 +1021,11 @@ const App = {
     document.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
     document.getElementById('stab-'+src).classList.add('active');
     document.getElementById('form-manual').style.display = src==='manual'?'':'none';
-    document.getElementById('form-scan').style.display = src==='scan'?'':'none';
+    document.getElementById('form-tg').style.display = src==='tg'?'':'none';
     document.getElementById('form-cash').style.display = src==='cash'?'':'none';
     const btn = document.getElementById('btn-save-tx');
-    btn.textContent = src==='scan'?'Транзакции уже добавлены':'Добавить';
-    if (src==='scan') btn.style.display='none'; else btn.style.display='';
+    btn.textContent = src==='tg'?'Импортировать':'Добавить';
+    btn.style.display = '';
   },
 
   saveTransaction() {
@@ -1037,6 +1039,35 @@ const App = {
       if (!merchant || !amount || !date) { this.toast('Заполните все поля'); return; }
       const domain = this.getDomainForMerchant(merchant);
       this.addTransaction({merchant,amount,date,type,categoryId:catId,merchantDomain:domain,isCash:false});
+      this.closeModal('modal-add');
+      this.renderCurrentTab();
+      this.toast('Добавлено');
+    } else if (src === 'tg') {
+      const raw = document.getElementById('tg-json').value.trim();
+      if (!raw) { this.toast('Вставьте JSON от бота'); return; }
+      let txs;
+      try {
+        const match = raw.match(/\[[\s\S]*\]/);
+        txs = JSON.parse(match ? match[0] : raw);
+      } catch(e) { this.toast('Неверный формат JSON'); return; }
+      if (!Array.isArray(txs) || txs.length === 0) { this.toast('Список пустой'); return; }
+      txs.forEach(t=>{
+        if (!t.merchant || !t.amount) return;
+        const catId = this.getCategoryForMerchant(t.merchant);
+        const domain = this.getDomainForMerchant(t.merchant);
+        this.addTransaction({
+          merchant: t.merchant,
+          amount: Math.abs(t.amount),
+          date: t.date || new Date().toISOString().slice(0,10),
+          type: t.type || 'expense',
+          categoryId: t.categoryId || catId,
+          merchantDomain: domain,
+          isCash: false,
+        });
+      });
+      this.closeModal('modal-add');
+      this.renderCurrentTab();
+      this.toast(`Импортировано ${txs.length} транзакций`);
     } else if (src === 'cash') {
       const merchant = document.getElementById('cash-merchant').value.trim() || 'Наличные';
       const amount = parseFloat(document.getElementById('cash-amount').value);
@@ -1044,10 +1075,10 @@ const App = {
       const catId = this.state._selectedCashCatId || 'cash';
       if (!amount || !date) { this.toast('Введите сумму'); return; }
       this.addTransaction({merchant,amount,date,type:'expense',categoryId:catId,merchantDomain:null,isCash:true});
+      this.closeModal('modal-add');
+      this.renderCurrentTab();
+      this.toast('Добавлено');
     }
-    this.closeModal('modal-add');
-    this.renderCurrentTab();
-    this.toast('Добавлено');
   },
 
   addTransaction(data) {
