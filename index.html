@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Финансы">
-<meta name="theme-color" content="#0B0B11">
+<meta name="theme-color" id="meta-theme" content="#0B0B11">
 <title>Финансы</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
@@ -19,8 +19,14 @@
   --r:16px;--rs:10px;--rss:8px;
   --safe-t:env(safe-area-inset-top,0px);
   --safe-b:env(safe-area-inset-bottom,0px);
+  --total-grad:linear-gradient(135deg,#1A1535 0%,#0F1A2E 100%);
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;overflow:hidden}
+[data-theme="light"]{
+  --bg:#F2F2F7;--card:#FFFFFF;--card2:#F0F0F5;--border:#E0E0EA;
+  --text:#1A1A2E;--muted:#8A8A9A;--muted2:#C8C8D8;
+  --total-grad:linear-gradient(135deg,#EAE7FF 0%,#D8E8FF 100%);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;overflow:hidden;transition:background .2s,color .2s}
 #app{height:100%;display:flex;flex-direction:column;padding-top:var(--safe-t)}
 .screen{display:none;flex:1;overflow-y:auto;padding:16px 16px 0;-webkit-overflow-scrolling:touch}
 .screen.active{display:block}
@@ -36,7 +42,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .card{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:12px}
 .card2{background:var(--card2);border-radius:var(--r);padding:14px;margin-bottom:10px}
 /* Total card */
-.total-card{background:linear-gradient(135deg,#1A1535 0%,#0F1A2E 100%);border-radius:20px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden}
+.total-card{background:var(--total-grad);border-radius:20px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden}
 .total-card::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:var(--accent);opacity:.08;border-radius:50%}
 .total-card .label{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
 .total-card .amount{font-size:38px;font-weight:800;letter-spacing:-1.5px;color:var(--text)}
@@ -172,11 +178,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <!-- Top -->
   <div class="top-bar">
     <h1 id="app-title">Финансы</h1>
-    <button class="btn-icon" id="btn-settings" onclick="App.openSettings()">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-    </button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-icon" id="btn-theme" onclick="App.toggleTheme()" title="Сменить тему">
+        <span id="theme-icon">☀️</span>
+      </button>
+      <button class="btn-icon" id="btn-settings" onclick="App.openSettings()">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
   </div>
   <div class="month-nav">
     <button onclick="App.prevMonth()">‹</button>
@@ -448,6 +459,7 @@ const App = {
 
   init() {
     this.load();
+    this.applyTheme();
     this.renderMonthLabel();
     this.renderDashboard();
     const today = new Date().toISOString().slice(0,10);
@@ -457,6 +469,17 @@ const App = {
     if (!this.state.apiKey) {
       this.openModal('modal-setup');
     }
+  },
+  toggleTheme() {
+    this.state.theme = this.state.theme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('fin_theme', this.state.theme);
+    this.applyTheme();
+  },
+  applyTheme() {
+    const t = this.state.theme || 'dark';
+    document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : '');
+    document.getElementById('theme-icon').textContent = t === 'light' ? '🌙' : '☀️';
+    document.getElementById('meta-theme').content = t === 'light' ? '#F2F2F7' : '#0B0B11';
   },
   saveSetupKey() {
     const key = document.getElementById('setup-apikey').value.trim();
@@ -488,6 +511,8 @@ const App = {
       if (mmap) this.state.merchantMap = JSON.parse(mmap);
       const key = localStorage.getItem('fin_apikey');
       if (key) this.state.apiKey = key;
+      const theme = localStorage.getItem('fin_theme');
+      if (theme) this.state.theme = theme;
     } catch(e){}
   },
 
@@ -1047,6 +1072,11 @@ const App = {
   async handleScanFile(input) {
     const file = input.files[0];
     if (!file) return;
+    if (!this.state.apiKey) {
+      this.toast('Сначала введите API ключ в настройках');
+      this.openModal('modal-setup');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = async (e)=>{
       const base64 = e.target.result.split(',')[1];
@@ -1059,7 +1089,7 @@ const App = {
         const txs = await this.scanImageWithClaude(base64, file.type);
         document.getElementById('scan-loading').classList.remove('show');
         if (!txs || txs.length === 0) {
-          this.toast('Транзакции не найдены');
+          this.toast('Транзакции не найдены на скрине');
           document.getElementById('scan-drop').style.display = '';
           preview.style.display = 'none';
           return;
@@ -1075,8 +1105,11 @@ const App = {
       } catch(err) {
         document.getElementById('scan-loading').classList.remove('show');
         document.getElementById('scan-drop').style.display = '';
-        this.toast('Ошибка распознавания');
-        console.error(err);
+        preview.style.display = 'none';
+        input.value = '';
+        const msg = err.message || 'Ошибка';
+        this.toast(msg.length > 50 ? 'Ошибка API: ' + msg.slice(0,40) + '...' : msg);
+        console.error('Scan error:', err);
       }
     };
     reader.readAsDataURL(file);
@@ -1116,7 +1149,8 @@ const App = {
     });
     if (!resp.ok) {
       const err = await resp.json().catch(()=>({}));
-      throw new Error(err.error?.message||'API error');
+      const msg = err.error?.message || `HTTP ${resp.status}`;
+      throw new Error(msg);
     }
     const data = await resp.json();
     const text = data.content?.[0]?.text||'';
