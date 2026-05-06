@@ -168,7 +168,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .change-opt:active{border-color:var(--accent)}
 .change-opt-title{font-size:15px;font-weight:600;margin-bottom:3px}
 .change-opt-desc{font-size:12px;color:var(--muted)}
-.nav-add{padding:4px 0 0}
+.nav-add-btn{width:50px;height:50px;background:var(--accent);border-radius:50%;border:none;color:#fff;font-size:28px;font-weight:300;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(123,110,232,.45);cursor:pointer;margin-top:-10px;flex-shrink:0;-webkit-appearance:none;appearance:none}
 </style>
 </head>
 <body>
@@ -209,9 +209,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
       Транзакции
     </button>
-    <button class="nav-btn nav-add" onclick="App.openAddModal()" id="nav-add">
-      <div style="width:46px;height:46px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;box-shadow:0 3px 12px rgba(123,110,232,.4);margin-bottom:-4px">+</div>
-    </button>
+    <button class="nav-btn nav-add-btn" id="nav-add">+</button>
     <button class="nav-btn" onclick="App.switchTab('subscriptions')" id="nav-subscriptions">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
       Подписки
@@ -1342,6 +1340,11 @@ document.querySelectorAll('.modal-overlay').forEach(overlay=>{
 });
 
 App.init();
+
+// Надёжный обработчик для Safari
+const navAdd = document.getElementById('nav-add');
+navAdd.addEventListener('touchend', function(e){ e.preventDefault(); App.openAddModal(); }, {passive:false});
+navAdd.addEventListener('click', function(){ App.openAddModal(); });
 </script>
 </body>
 </html>
