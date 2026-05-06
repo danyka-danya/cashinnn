@@ -169,7 +169,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .change-opt-title{font-size:15px;font-weight:600;margin-bottom:3px}
 .change-opt-desc{font-size:12px;color:var(--muted)}
 /* Add button fab */
-.fab{position:fixed;bottom:calc(70px + var(--safe-b));right:16px;width:52px;height:52px;background:var(--accent);border-radius:50%;border:none;color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(123,110,232,.4);cursor:pointer;transition:.15s;z-index:50}
+.fab{position:fixed;bottom:calc(72px + var(--safe-b));right:20px;width:54px;height:54px;background:var(--accent);border-radius:50%;border:none;color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(123,110,232,.45);cursor:pointer;transition:.15s;z-index:90;-webkit-transform:translateZ(0);transform:translateZ(0)}
 .fab:active{transform:scale(.92)}
 </style>
 </head>
@@ -201,9 +201,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div id="screen-subscriptions" class="screen" style="padding-bottom:80px"></div>
   <div id="screen-analytics" class="screen" style="padding-bottom:80px"></div>
 
-  <!-- FAB -->
-  <button class="fab" onclick="App.openAddModal()">+</button>
-
   <!-- Bottom nav -->
   <nav id="bottom-nav">
     <button class="nav-btn active" onclick="App.switchTab('dashboard')" id="nav-dashboard">
@@ -224,6 +221,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </button>
   </nav>
 </div>
+
+<!-- FAB outside #app for Safari fixed positioning -->
+<button class="fab" onclick="App.openAddModal()">+</button>
 
 <!-- Modal: Add transaction -->
 <div class="modal-overlay" id="modal-add">
