@@ -10,7 +10,7 @@
 <title>Финансы</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 :root{
   --bg:#0B0B11;--card:#151520;--card2:#1C1C2A;--border:#252535;
   --text:#F0F0FF;--muted:#606075;--muted2:#3A3A50;
@@ -136,17 +136,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .cmp-delta{font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;margin-left:6px}
 .cmp-delta.up{background:rgba(255,96,96,.15);color:var(--red)}
 .cmp-delta.down{background:rgba(46,204,154,.15);color:var(--green)}
-/* Scan area */
-.scan-area{border:2px dashed var(--border);border-radius:var(--r);padding:30px 20px;text-align:center;cursor:pointer;margin-bottom:14px;transition:.15s}
-.scan-area:active{border-color:var(--accent)}
-.scan-area-icon{font-size:40px;margin-bottom:10px}
-.scan-area-text{color:var(--muted);font-size:14px}
-.scan-preview{width:100%;border-radius:var(--r);margin-bottom:14px;max-height:200px;object-fit:cover}
-/* Scanning overlay */
-#scan-loading{display:none;text-align:center;padding:20px}
-#scan-loading.show{display:block}
-.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
-@keyframes spin{to{transform:rotate(360deg)}}
 /* Tag */
 .tag{display:inline-block;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;margin-right:4px}
 /* Empty state */
@@ -445,7 +434,7 @@ const App = {
     transactions: [],
     categories: [...DEFAULT_CATEGORIES],
     merchantMap: {},  // merchant -> categoryId
-    currentMonth: new Date().toISOString().slice(0,7),
+    currentMonth: (()=>{const n=new Date();return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;})(),
     currentTab: 'dashboard',
     apiKey: CLAUDE_KEY_DEFAULT,
     _addSource: 'manual',
@@ -460,7 +449,8 @@ const App = {
     this.applyTheme();
     this.renderMonthLabel();
     this.renderDashboard();
-    const today = new Date().toISOString().slice(0,10);
+    const _n = new Date();
+    const today = `${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`;
     document.getElementById('tx-date').value = today;
     document.getElementById('cash-date').value = today;
     document.getElementById('settings-apikey').value = this.state.apiKey;
@@ -559,8 +549,8 @@ const App = {
   },
   prevMonthStr(month) {
     const [y,m] = month.split('-').map(Number);
-    const d = new Date(y,m-2,1);
-    return d.toISOString().slice(0,7);
+    const d = new Date(y, m-2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   },
   makeId() {
     return Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -1006,13 +996,13 @@ const App = {
     document.getElementById('tx-merchant').value = '';
     document.getElementById('tx-amount').value = '';
     document.getElementById('tx-type').value = 'expense';
-    const today = new Date().toISOString().slice(0,10);
+    const _n = new Date();
+    const today = `${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`;
     document.getElementById('tx-date').value = today;
     document.getElementById('cash-date').value = today;
     document.getElementById('cash-merchant').value = '';
     document.getElementById('cash-amount').value = '';
-    document.getElementById('scan-preview').style.display = 'none';
-    document.getElementById('scan-loading').classList.remove('show');
+    document.getElementById('tg-json').value = '';
     this.switchSource('manual');
     this.openModal('modal-add');
   },
@@ -1058,7 +1048,7 @@ const App = {
         this.addTransaction({
           merchant: t.merchant,
           amount: Math.abs(t.amount),
-          date: t.date || new Date().toISOString().slice(0,10),
+          date: t.date || (()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;})(),
           type: t.type || 'expense',
           categoryId: t.categoryId || catId,
           merchantDomain: domain,
@@ -1097,97 +1087,6 @@ const App = {
     this.state.transactions.push(tx);
     this.save();
     return tx;
-  },
-
-  // ── Scan ──────────────────────────────────────────────────────────
-  async handleScanFile(input) {
-    const file = input.files[0];
-    if (!file) return;
-    if (!this.state.apiKey) {
-      this.toast('Сначала введите API ключ в настройках');
-      this.openModal('modal-setup');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = async (e)=>{
-      const base64 = e.target.result.split(',')[1];
-      const preview = document.getElementById('scan-preview');
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-      document.getElementById('scan-drop').style.display = 'none';
-      document.getElementById('scan-loading').classList.add('show');
-      try {
-        const txs = await this.scanImageWithClaude(base64, file.type);
-        document.getElementById('scan-loading').classList.remove('show');
-        if (!txs || txs.length === 0) {
-          this.toast('Транзакции не найдены на скрине');
-          document.getElementById('scan-drop').style.display = '';
-          preview.style.display = 'none';
-          return;
-        }
-        txs.forEach(t=>{
-          const catId = t.categoryId || this.getCategoryForMerchant(t.merchant);
-          const domain = this.getDomainForMerchant(t.merchant);
-          this.addTransaction({...t,categoryId:catId,merchantDomain:domain});
-        });
-        this.closeModal('modal-add');
-        this.renderCurrentTab();
-        this.toast(`Добавлено ${txs.length} транзакций`);
-      } catch(err) {
-        document.getElementById('scan-loading').classList.remove('show');
-        document.getElementById('scan-drop').style.display = '';
-        preview.style.display = 'none';
-        input.value = '';
-        const msg = err.message || 'Ошибка';
-        this.toast(msg.length > 50 ? 'Ошибка API: ' + msg.slice(0,40) + '...' : msg);
-        console.error('Scan error:', err);
-      }
-    };
-    reader.readAsDataURL(file);
-  },
-
-  async scanImageWithClaude(base64, mediaType) {
-    const key = this.state.apiKey;
-    const today = new Date().toISOString().slice(0,10);
-    const prompt = `Это скриншот из мобильного приложения Альфа-Банка или другого российского банка. Сегодня ${today}.
-Найди ВСЕ транзакции на скриншоте и верни JSON массив.
-Каждая транзакция: {"date":"YYYY-MM-DD","merchant":"Название магазина/сервиса","amount":число,"type":"expense"}
-Правила:
-- amount — положительное число (рублей)
-- merchant — очищенное название (без кодов, без лишних символов)
-- date — если нет года, используй текущий год
-- Включай только списания (расходы), не включай пополнения
-- Верни ТОЛЬКО JSON массив, без пояснений
-
-Пример: [{"date":"2026-05-01","merchant":"ВкусВилл","amount":850,"type":"expense"}]`;
-
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':key,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true',
-      },
-      body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',
-        max_tokens:1024,
-        messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:mediaType,data:base64}},
-          {type:'text',text:prompt}
-        ]}]
-      })
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(()=>({}));
-      const msg = err.error?.message || `HTTP ${resp.status}`;
-      throw new Error(msg);
-    }
-    const data = await resp.json();
-    const text = data.content?.[0]?.text||'';
-    const match = text.match(/\[[\s\S]*\]/);
-    if (!match) return [];
-    return JSON.parse(match[0]);
   },
 
   // ── Category picker ───────────────────────────────────────────────
@@ -1243,7 +1142,7 @@ const App = {
     document.getElementById('change-cat-subtitle').textContent = tx.merchant;
     const grid = document.getElementById('change-cat-grid');
     grid.innerHTML = this.state.categories.map(cat=>`
-      <div class="cat-item ${cat.id===tx.categoryId?'selected':''}" onclick="App.selectChangeCat('${cat.id}')">
+      <div class="cat-item ${cat.id===tx.categoryId?'selected':''}" onclick="App.selectChangeCat('${cat.id}',this)">
         <div class="cat-item-icon" style="background:${cat.color}20;color:${cat.color}">${cat.icon}</div>
         <div class="cat-item-name">${cat.name}</div>
       </div>`).join('');
@@ -1251,15 +1150,13 @@ const App = {
     document.getElementById('change-cat-grid').style.display = 'grid';
     this.openModal('modal-change-cat');
   },
-  selectChangeCat(catId) {
+  selectChangeCat(catId, el) {
     const tx = this.state.transactions.find(t=>t.id===this.state._changeCatTxId);
     if (!tx) return;
     if (catId === tx.categoryId) { this.closeModal('modal-change-cat'); return; }
     this.state._changeCatNewCatId = catId;
-    // Update grid selection
-    document.querySelectorAll('#change-cat-grid .cat-item').forEach(el=>el.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-    // Show scope options
+    document.querySelectorAll('#change-cat-grid .cat-item').forEach(e=>e.classList.remove('selected'));
+    if (el) el.classList.add('selected');
     document.getElementById('change-cat-grid').style.display = 'none';
     document.getElementById('change-opt-always-title').textContent = `Всегда для "${tx.merchant}"`;
     document.getElementById('change-scope-options').style.display = 'flex';
@@ -1334,17 +1231,26 @@ const App = {
 
 // Close modals on overlay click
 document.querySelectorAll('.modal-overlay').forEach(overlay=>{
-  overlay.addEventListener('click',function(e){
-    if(e.target===this) this.classList.remove('open');
-  });
+  overlay.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
+  overlay.addEventListener('touchend',function(e){ if(e.target===this){ e.preventDefault(); this.classList.remove('open'); } },{passive:false});
 });
 
 App.init();
 
-// Надёжный обработчик для Safari
-const navAdd = document.getElementById('nav-add');
-navAdd.addEventListener('touchend', function(e){ e.preventDefault(); App.openAddModal(); }, {passive:false});
-navAdd.addEventListener('click', function(){ App.openAddModal(); });
+// Touchend handlers for Safari — убирают 300ms задержку и глюки тапов
+function addTap(id, fn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('touchend', function(e){ e.preventDefault(); fn(); }, {passive:false});
+  el.addEventListener('click', fn);
+}
+addTap('nav-add', ()=>App.openAddModal());
+addTap('nav-dashboard', ()=>App.switchTab('dashboard'));
+addTap('nav-transactions', ()=>App.switchTab('transactions'));
+addTap('nav-subscriptions', ()=>App.switchTab('subscriptions'));
+addTap('nav-analytics', ()=>App.switchTab('analytics'));
+addTap('btn-theme', ()=>App.toggleTheme());
+addTap('btn-settings', ()=>App.openSettings());
 </script>
 </body>
 </html>
